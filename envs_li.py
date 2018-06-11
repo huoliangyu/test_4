@@ -28,7 +28,6 @@ from matplotlib.ticker import LinearLocator, FormatStrFormatter
 from vrplayer import get_view
 from move_view_lib import move_view
 from suppor_lib import *
-from move_view_lib_new import view_mover
 import tensorflow as tf
 
 logger = logging.getLogger(__name__)
@@ -73,10 +72,20 @@ class env_li():
         self.config()
 
         '''create view_mover'''
-        self.view_mover = view_mover()
+        from config import use_move_view_lib
+        self.use_move_view_lib = use_move_view_lib
+        if self.use_move_view_lib is 'new':
+            from move_view_lib_new import view_mover
+            self.view_mover = view_mover()
 
         '''reset'''
         self.observation = self.reset()
+
+        # self.terminate_this_worker()
+
+        # self.max_cc = self.env_id_num
+        # self.write_best_cc()
+        # print(s)
 
     def get_observation(self):
 
@@ -102,12 +111,13 @@ class env_li():
         from config import data_base
         self.data_base = data_base
 
-        from config import if_run_baseline
-        self.if_run_baseline = if_run_baseline
-        if self.if_run_baseline is True:
-            from config import baseline_type, v_used_in_baseline
-            self.baseline_type = baseline_type
-            self.v_used_in_baseline = v_used_in_baseline
+        if self.mode is 'on_line':
+            from config import if_run_baseline
+            self.if_run_baseline = if_run_baseline
+            if self.if_run_baseline is True:
+                from config import baseline_type, v_used_in_baseline
+                self.baseline_type = baseline_type
+                self.v_used_in_baseline = v_used_in_baseline
 
         from config import if_learning_v
         self.if_learning_v = if_learning_v
@@ -146,10 +156,6 @@ class env_li():
         data_all = sio.loadmat(matfn)
         data = data_all[self.env_id]
         self.subjects_total, self.data_total, self.subjects, _ = get_subjects(data,0)
-
-        # print("*************")
-        # print(self.subject_code)
-        # print(s)
 
         self.reward_dic_on_cur_episode = []
 
@@ -205,13 +211,13 @@ class env_li():
         self.heatmap_height = 180
         self.heatmap_width = 360
 
-        if self.mode is 'data_processor':
-            self.data_processor()
-
         '''load ground-truth heat map'''
         from config import heatmap_sigma
         gt_heatmap_dir = 'gt_heatmap_sp_' + heatmap_sigma
         self.gt_heatmaps = self.load_heatmaps(gt_heatmap_dir)
+
+        if self.mode is 'data_processor':
+            self.data_processor()
 
         if (self.mode is 'off_line') or (self.mode is 'data_processor'):
             from config import num_workers_global,cluster_current,cluster_main
@@ -231,111 +237,116 @@ class env_li():
     def data_processor(self):
         from config import data_processor_id
         print('==========================data process start: '+data_processor_id+'================================')
-        if data_processor_id is 'minglang_mp4_to_yuv':
-            print('sssss')
-            from config import game_dic_new_all
-            for i in range(len(game_dic_new_all)):
-                # print(game_dic_new_all[i])
-                if i >= 0 and i <= 0: #len(game_dic_new_all)
-                    # file_in_1 = '/media/minglang/YuhangSong_1/ff/vr_new/'+str(game_dic_new_all[i])+'.mp4'
-                    file_out_1 = '/media/minglang/YuhangSong_1/ff/vr_yuv/'+"Let'sNotBeAloneTonight"+'.yuv'
-                    file_in_1 = '/media/minglang/YuhangSong_1/ff/vr_new/'+"Let'sNotBeAloneTonight"+'.mp4'
-                    self.video = cv2.VideoCapture(file_in_1)
-                    input_width_1 = int(self.video.get(cv2.cv.CV_CAP_PROP_FRAME_WIDTH))
-                    input_height_1 = int(self.video.get(cv2.cv.CV_CAP_PROP_FRAME_HEIGHT))
-                    self.mp4_to_yuv(input_width_1,input_height_1,file_in_1,file_out_1)
-                    print('end processing: ',file_out_1)
+        # if data_processor_id is 'minglang_mp4_to_yuv':
+        #     print('sssss')
+        #     from config import game_dic_new_all
+        #     for i in range(len(game_dic_new_all)):
+        #         # print(game_dic_new_all[i])
+        #         if i >= 0 and i <= 0: #len(game_dic_new_all)
+        #             # file_in_1 = '/media/minglang/YuhangSong_1/ff/vr_new/'+str(game_dic_new_all[i])+'.mp4'
+        #             file_out_1 = '/media/minglang/YuhangSong_1/ff/vr_yuv/'+"Let'sNotBeAloneTonight"+'.yuv'
+        #             file_in_1 = '/media/minglang/YuhangSong_1/ff/vr_new/'+"Let'sNotBeAloneTonight"+'.mp4'
+        #             self.video = cv2.VideoCapture(file_in_1)
+        #             input_width_1 = int(self.video.get(cv2.cv.CV_CAP_PROP_FRAME_WIDTH))
+        #             input_height_1 = int(self.video.get(cv2.cv.CV_CAP_PROP_FRAME_HEIGHT))
+        #             self.mp4_to_yuv(input_width_1,input_height_1,file_in_1,file_out_1)
+        #             print('end processing: ',file_out_1)
+        #
+        #     # print('len_game_dic_new_all: ',len(game_dic_new_all))
+        #     # print('get_view')
+        #
+        #     # print(game_dic_new_all)
+        #
+        # if data_processor_id is 'minglang_mp4_to_jpg':
+        #     from config import game_dic_new_all
+        #     for i in range(len(game_dic_new_all)):
+        #         # print(game_dic_new_all[i])
+        #         if i >= 1 and i <= len(game_dic_new_all): #len(game_dic_new_all)
+        #             # file_in_1 = '/media/minglang/YuhangSong_1/ff/vr_new/'+str(game_dic_new_all[i])+'.mp4'
+        #             # file_out_1 = '/media/minglang/YuhangSong_1/ff/vr_yuv/'+"Let'sNotBeAloneTonight"+'.yuv'
+        #             # file_in_1 = '/media/minglang/YuhangSong_1/ff/vr_new/'+"Let'sNotBeAloneTonight"+'.mp4'
+        #             file_in_1 = '/media/minglang/YuhangSong_1/ff/vr_new/'+str(game_dic_new_all[i])+'.mp4'
+        #             file_out_1 = '/media/minglang/YuhangSong_1/ff/vr_bms_jpg/'+str(game_dic_new_all[i])+'.yuv'
+        #
+        #             video = cv2.VideoCapture(file_in_1)
+        #             self.video = video
+        #             self.frame_per_second = round(video.get(cv2.cv.CV_CAP_PROP_FPS))
+        #             self.frame_total = round(video.get(cv2.cv.CV_CAP_PROP_FRAME_COUNT))
+        #
+        #             for frame_i in range(int(self.frame_total)):
+        #
+        #                 try:
+        #                     rval, frame = self.video.read()
+        #                     # here minglang 1
+        #                     cv2.imwrite('/media/minglang/YuhangSong_1/ff/vr_bms_jpg/'+str(game_dic_new_all[i])+'_'+str(frame_i)+'.jpg',frame)
+        #                     print(frame_i)
+        #                 except Exception, e:
+        #                     print('failed on this frame, continue')
+        #                     print Exception,":",e
+        #                     continue
+        #
+        #             print('end processing: ',file_in_1,self.frame_per_second,self.frame_total)
+        #
+        # if data_processor_id is 'minglang_obdl_cfg':
+        #     from config import game_dic_new_all
+        #     for i in range(len(game_dic_new_all)):
+        #         # print(game_dic_new_all[i])
+        #
+        #         if i >= 100 and i <=  len(game_dic_new_all): #len(game_dic_new_all)
+        #             # file_in_1 = '/media/minglang/YuhangSong_1/ff/vr_new/'+str(game_dic_new_all[i])+'.mp4'
+        #             # file_out_1 = '/media/minglang/YuhangSong_1/ff/vr_yuv/'+"Let'sNotBeAloneTonight"+'.yuv'
+        #             # file_in_1 = '/media/minglang/YuhangSong_1/ff/vr_new/'+"Let'sNotBeAloneTonight"+'.mp4'
+        #             file_in_1 = '/media/minglang/YuhangSong_1/ff/vr_new/'+str(game_dic_new_all[i])+'.mp4'
+        #             CONFIG_FILE = '/media/minglang/YuhangSong_1/ff/obdl_vr_new/'+str(game_dic_new_all[i])+'.cfg'
+        #
+        #             # # get the paramters
+        #             video = cv2.VideoCapture(file_in_1)
+        #             self.video = video
+        #             self.frame_per_second = int(round(video.get(cv2.cv.CV_CAP_PROP_FPS)))
+        #             self.frame_total = int(round(video.get(cv2.cv.CV_CAP_PROP_FRAME_COUNT)))
+        #             NAME = game_dic_new_all[i]
+        #             FRAMESCOUNT = self.frame_total
+        #             FRAMERATE = self.frame_per_second
+        #             IMAGEWIDTH = int(self.video.get(cv2.cv.CV_CAP_PROP_FRAME_WIDTH))
+        #             IMAGEHEIGHT = int(self.video.get(cv2.cv.CV_CAP_PROP_FRAME_HEIGHT))
+        #
+        #             # write the paramters throuh cfg
+        #             # conf = ConfigParser.ConfigParser()
+        #             # cfgfile = open(CONFIG_FILE,'w')
+        #             # # conf.add_section("")
+        #
+        #             # write through txt
+        #             f_config = open(CONFIG_FILE,"w")
+        #             f_config.write("NAME\n")
+        #             f_config.write(str(game_dic_new_all[i])+'\n')
+        #             f_config.write("FRAMESCOUNT\n")
+        #             f_config.write(str(FRAMESCOUNT)+'\n')
+        #             f_config.write("FRAMERATE\n")
+        #             f_config.write(str(FRAMERATE)+'\n')
+        #             f_config.write("IMAGEWIDTH\n")
+        #             f_config.write(str(IMAGEWIDTH)+'\n')
+        #             f_config.write("IMAGEHEIGHT\n")
+        #             f_config.write(str(IMAGEHEIGHT)+'\n')
+        #             f_config.close()
+        #
+        #         #one video and one cfg in one file
+        #         if i >= 0 and i <= len(game_dic_new_all): #len(game_dic_new_all)
+        #             cfg_file = '/media/minglang/YuhangSong_1/ff/obdl_vr_new/obdl_vr_new/'+str(game_dic_new_all[i])
+        #             os.makedirs(cfg_file)
+        #             file_in_1 = '/media/minglang/YuhangSong_1/ff/vr_new/'+str(game_dic_new_all[i])+'.mp4'
+        #             shutil.copy(file_in_1,cfg_file)
+        #             CONFIG_FILE = '/media/minglang/YuhangSong_1/ff/obdl_vr_new/'+str(game_dic_new_all[i])+'.cfg'
+        #             shutil.copy(CONFIG_FILE,cfg_file)
+        #             print("os.makedirs(cfg_file)")
 
-            # print('len_game_dic_new_all: ',len(game_dic_new_all))
-            # print('get_view')
+        if data_processor_id is 'song':
+            for step_i in range(self.step_total):
+                fcb_map = fixation2salmap(fixation=[[0.0,0.0]],
+                                          mapwidth=self.heatmap_width,
+                                          mapheight=self.heatmap_height)
+            print(ss)
+            self.terminate_this_worker()
 
-            # print(game_dic_new_all)
-
-        if data_processor_id is 'minglang_mp4_to_jpg':
-            from config import game_dic_new_all
-            for i in range(len(game_dic_new_all)):
-                # print(game_dic_new_all[i])
-                if i >= 1 and i <= len(game_dic_new_all): #len(game_dic_new_all)
-                    # file_in_1 = '/media/minglang/YuhangSong_1/ff/vr_new/'+str(game_dic_new_all[i])+'.mp4'
-                    # file_out_1 = '/media/minglang/YuhangSong_1/ff/vr_yuv/'+"Let'sNotBeAloneTonight"+'.yuv'
-                    # file_in_1 = '/media/minglang/YuhangSong_1/ff/vr_new/'+"Let'sNotBeAloneTonight"+'.mp4'
-                    file_in_1 = '/media/minglang/YuhangSong_1/ff/vr_new/'+str(game_dic_new_all[i])+'.mp4'
-                    file_out_1 = '/media/minglang/YuhangSong_1/ff/vr_bms_jpg/'+str(game_dic_new_all[i])+'.yuv'
-
-                    video = cv2.VideoCapture(file_in_1)
-                    self.video = video
-                    self.frame_per_second = round(video.get(cv2.cv.CV_CAP_PROP_FPS))
-                    self.frame_total = round(video.get(cv2.cv.CV_CAP_PROP_FRAME_COUNT))
-
-                    for frame_i in range(int(self.frame_total)):
-
-                        try:
-                            rval, frame = self.video.read()
-                            # here minglang 1
-                            cv2.imwrite('/media/minglang/YuhangSong_1/ff/vr_bms_jpg/'+str(game_dic_new_all[i])+'_'+str(frame_i)+'.jpg',frame)
-                            print(frame_i)
-                        except Exception, e:
-                            print('failed on this frame, continue')
-                            print Exception,":",e
-                            continue
-
-                    print('end processing: ',file_in_1,self.frame_per_second,self.frame_total)
-
-        if data_processor_id is 'minglang_obdl_cfg':
-            from config import game_dic_new_all
-            for i in range(len(game_dic_new_all)):
-                # print(game_dic_new_all[i])
-
-                if i >= 100 and i <=  len(game_dic_new_all): #len(game_dic_new_all)
-                    # file_in_1 = '/media/minglang/YuhangSong_1/ff/vr_new/'+str(game_dic_new_all[i])+'.mp4'
-                    # file_out_1 = '/media/minglang/YuhangSong_1/ff/vr_yuv/'+"Let'sNotBeAloneTonight"+'.yuv'
-                    # file_in_1 = '/media/minglang/YuhangSong_1/ff/vr_new/'+"Let'sNotBeAloneTonight"+'.mp4'
-                    file_in_1 = '/media/minglang/YuhangSong_1/ff/vr_new/'+str(game_dic_new_all[i])+'.mp4'
-                    CONFIG_FILE = '/media/minglang/YuhangSong_1/ff/obdl_vr_new/'+str(game_dic_new_all[i])+'.cfg'
-
-                    # # get the paramters
-                    video = cv2.VideoCapture(file_in_1)
-                    self.video = video
-                    self.frame_per_second = int(round(video.get(cv2.cv.CV_CAP_PROP_FPS)))
-                    self.frame_total = int(round(video.get(cv2.cv.CV_CAP_PROP_FRAME_COUNT)))
-                    NAME = game_dic_new_all[i]
-                    FRAMESCOUNT = self.frame_total
-                    FRAMERATE = self.frame_per_second
-                    IMAGEWIDTH = int(self.video.get(cv2.cv.CV_CAP_PROP_FRAME_WIDTH))
-                    IMAGEHEIGHT = int(self.video.get(cv2.cv.CV_CAP_PROP_FRAME_HEIGHT))
-
-                    # write the paramters throuh cfg
-                    # conf = ConfigParser.ConfigParser()
-                    # cfgfile = open(CONFIG_FILE,'w')
-                    # # conf.add_section("")
-
-                    # write through txt
-                    f_config = open(CONFIG_FILE,"w")
-                    f_config.write("NAME\n")
-                    f_config.write(str(game_dic_new_all[i])+'\n')
-                    f_config.write("FRAMESCOUNT\n")
-                    f_config.write(str(FRAMESCOUNT)+'\n')
-                    f_config.write("FRAMERATE\n")
-                    f_config.write(str(FRAMERATE)+'\n')
-                    f_config.write("IMAGEWIDTH\n")
-                    f_config.write(str(IMAGEWIDTH)+'\n')
-                    f_config.write("IMAGEHEIGHT\n")
-                    f_config.write(str(IMAGEHEIGHT)+'\n')
-                    f_config.close()
-
-                #one video and one cfg in one file
-                if i >= 0 and i <= len(game_dic_new_all): #len(game_dic_new_all)
-                    cfg_file = '/media/minglang/YuhangSong_1/ff/obdl_vr_new/obdl_vr_new/'+str(game_dic_new_all[i])
-                    os.makedirs(cfg_file)
-                    file_in_1 = '/media/minglang/YuhangSong_1/ff/vr_new/'+str(game_dic_new_all[i])+'.mp4'
-                    shutil.copy(file_in_1,cfg_file)
-                    CONFIG_FILE = '/media/minglang/YuhangSong_1/ff/obdl_vr_new/'+str(game_dic_new_all[i])+'.cfg'
-                    shutil.copy(CONFIG_FILE,cfg_file)
-                    print("os.makedirs(cfg_file)")
-
-
-        print('=============================data process end, programe terminate=============================')
-        print(t)
 
     def log_thread_config(self):
 
@@ -393,8 +404,9 @@ class env_li():
         self.cur_lat = self.subjects[subject_code].data_frame[0].p[1]
 
         '''reset view_mover'''
-        self.view_mover.init_position(Latitude=self.cur_lat,
-                                      Longitude=self.cur_lon)
+        if self.use_move_view_lib is 'new':
+            self.view_mover.init_position(Latitude=self.cur_lat,
+                                          Longitude=self.cur_lon)
 
         '''set observation_now to the first frame'''
         self.get_observation()
@@ -430,7 +442,7 @@ class env_li():
 
                         ccs_on_step_i = []
                         heatmaps_on_step_i = []
-                        for step_i in range(self.step_total):
+                        for step_i in range(self.step_total-1):
 
                             '''generate predicted salmap'''
                             temp = np.asarray(self.agent_result_stack)[:,step_i]
@@ -448,14 +460,31 @@ class env_li():
                             self.max_cc = self.cur_cc
                             self.heatmaps_of_max_cc = heatmaps_on_step_i
 
+                            '''log'''
                             from config import final_log_dir
                             record_dir = final_log_dir+'ff_best_heatmaps/'+self.env_id+'/'
                             subprocess.call(["rm", "-r", record_dir])
                             subprocess.call(["mkdir", "-p", record_dir])
-                            for step_i in range(self.step_total):
+                            for step_i in range(self.step_total-1):
                                 self.save_heatmap(heatmap=self.heatmaps_of_max_cc[step_i],
                                                   path=record_dir,
                                                   name=str(step_i))
+
+                            self.write_best_cc()
+
+    def write_best_cc(self):
+        from config import final_log_dir
+        record_dir = final_log_dir+'ff_best_cc/'+self.env_id+'/'
+        while True:
+            try:
+                subprocess.call(["rm", "-r", record_dir])
+                subprocess.call(["mkdir", "-p", record_dir])
+                np.savez(record_dir+'best_cc.npz',
+                         best_cc=[self.max_cc])
+                break
+            except Exception, e:
+                print(str(Exception)+": "+str(e))
+                time.sleep(1)
 
     def step(self, action, v):
 
@@ -508,8 +537,8 @@ class env_li():
                 if self.if_run_baseline is True:
 
                     '''if run baseline, overwrite the action and v'''
-                    if self.if_learning_v:
-                        v = self.v_used_in_baseline * self.data_per_step / math.pi * 180.0
+
+
                     if self.baseline_type is 'keep':
                         from suppor_lib import constrain_degree_to_0_360
                         action = int(round((constrain_degree_to_0_360(self.subjects[0].data_frame[self.last_data].theta))/45.0)) # constrain to 0~360, /45.0 round
@@ -517,26 +546,45 @@ class env_li():
                         import random
                         action = random.randint(0,7)
 
-            '''get reward and v from last state'''
+
+                    '''overwrite v ,if v<0,action turn to the opposite'''
+                    self.v_expectation_used_in_baseline = self.v_used_in_baseline * self.data_per_step / math.pi *180.0
+                    self.v_stdev_used_in_baseline = self.v_expectation_used_in_baseline
+                    v = numpy.random.normal(self.v_expectation_used_in_baseline,self.v_stdev_used_in_baseline)
+                    if v < 0:
+                        action = (action + 4) % 8
+                        v = 0 - v
+
+            '''get direction reward and ground-truth v from data_base in last state'''
             last_prob, distance_per_data = get_prob(lon=self.last_lon,
                                                     lat=self.last_lat,
                                                     theta=action * 45.0,
                                                     subjects=self.subjects,
                                                     subjects_total=self.subjects_total,
                                                     cur_data=self.last_data)
-
             '''rescale'''
             distance_per_step = distance_per_data * self.data_per_step
-
             '''convert v to degree'''
             degree_per_step = distance_per_step / math.pi * 180.0
+            '''set v_lable'''
+            v_lable = degree_per_step
 
             '''move view, update cur_lon and cur_lat, the standard procedure of rl'''
             if self.if_learning_v:
-                self.cur_lon, self.cur_lat = self.view_mover.move_view(direction=action * 45.0,degree_per_step=v)
-                v_lable = degree_per_step
+                v_used_to_step = v
             else:
-                self.cur_lon, self.cur_lat = self.view_mover.move_view(direction=action * 45.0,degree_per_step=degree_per_step)
+                v_used_to_step = v_lable
+
+            if self.use_move_view_lib is 'new':
+                self.cur_lon, self.cur_lat = self.view_mover.move_view(direction=action * 45.0,
+                                                                       degree_per_step=v_used_to_step)
+            elif self.use_move_view_lib is 'ziyu':
+                from move_view_lib import move_view
+                self.cur_lon, self.cur_lat = move_view(cur_lon=self.last_lon,
+                                                       cur_lat=self.last_lat,
+                                                       direction=action,
+                                                       degree_per_step=v_used_to_step)
+            self.last_action = action
 
             '''produce reward'''
             if self.reward_estimator is 'trustworthy_transfer':
@@ -549,24 +597,15 @@ class env_li():
                 reward = calc_score(self.gt_heatmaps[self.cur_step], cur_heatmap)
 
             if self.mode is 'on_line':
+
                 '''compute MO'''
-                '''
-                self.cur_lon
-                self.cur_lat
-                sefl.subjects[0].data_frame[self.cur_data].p[0] # lon
-                sefl.subjects[0].data_frame[self.cur_data].p[1] # lat
-                self.video_size_width,
-                self.video_size_heigth,
-                self.view_range_lon,
-                self.view_range_lat,
-                '''
                 from MeanOverlap import *
-                FOV_scale = self.view_range_lon*1.0/self.view_range_lat
-                mo_calculator = MeanOverlap(self.video_size_width,self.video_size_heigth,self.view_range_lon,FOV_scale)
+                mo_calculator = MeanOverlap(self.video_size_width,
+                                            self.video_size_heigth,
+                                            65.5,
+                                            3.0/4.0)
                 mo = mo_calculator.calc_mo_deg((self.cur_lon,self.cur_lat),(self.subjects[0].data_frame[self.cur_data].p[0],self.subjects[0].data_frame[self.cur_data].p[1]),is_centered = True)
-                print("-------------------------------------------------------------------------------------------------------")
-                print(str(mo))
-                print("-------------------------------------------------------------------------------------------------------")
+                self.mo_dic_on_cur_episode += [mo]
 
             '''smooth reward'''
             if self.last_action is not None:
@@ -582,35 +621,57 @@ class env_li():
                 reward *= (1.0-(action_difference*(1.0-reward_smooth_discount_to)/(direction_num/2)))
 
             '''record'''
-            self.last_action = action
             self.reward_dic_on_cur_episode += [reward]
 
-            if self.mode is 'on_line':
-                self.mo_dic_on_cur_episode += [mo]
 
             '''
-            if we are predicting and the step has not ran to exceed the cur_training_step,
-            we are actually feeding the model so that we can produce a prediction with the experiences already experienced by the human,
-            not testing the modeling.
-            So we pull the position back to the ground-truth
+                All reward and scores has been computed, we now consider if we want to drawback the position
             '''
-            if (self.mode is 'on_line') and (self.predicting is True) and (self.cur_step > self.cur_training_step):
-                '''online and predicting, lon and lat is updated as subjects' ground-truth'''
-                '''other procedure may not used by the agent, but still implemented to keep the interface unified'''
-                print('predicting run')
-                self.cur_lon = self.subjects[0].data_frame[self.cur_data].p[0]
-                self.cur_lat = self.subjects[0].data_frame[self.cur_data].p[1]
+            if (self.mode is 'on_line'):
 
-            '''after pull the position, get observation'''
-            '''update observation_now'''
+                if self.if_run_baseline is True:
+
+                    '''
+                        if run baseline, should draw back
+                    '''
+                    print('>>>>>>Draw position back>>>>>>>')
+                    self.cur_lon = self.subjects[0].data_frame[self.cur_data].p[0]
+                    self.cur_lat = self.subjects[0].data_frame[self.cur_data].p[1]
+
+                if (self.predicting is True) or (self.if_run_baseline is True):
+
+                    '''
+                        if we are predicting we are actually feeding the model so that we can produce
+                        a prediction with the experiences already experienced by the human.
+                    '''
+                    print('>>>>>>Draw position back>>>>>>>')
+                    self.cur_lon = self.subjects[0].data_frame[self.cur_data].p[0]
+                    self.cur_lat = self.subjects[0].data_frame[self.cur_data].p[1]
+
+            '''
+                after pull the position, get observation
+                update observation_now
+            '''
             self.get_observation()
 
-            '''normally, we donot judge done when we in this'''
+            '''
+                normally, we donot judge done when we in this
+            '''
             done = False
 
-            '''core part for online'''
-
+            '''
+                core part for online
+            '''
             if self.mode is 'on_line':
+
+                if (self.if_run_baseline is True):
+
+                    '''if running baseline, we are always predicting'''
+                    self.predicting = True
+
+                    '''we predict until the last step'''
+                    self.cur_predicting_step = self.step_total - 4
+
 
                 if self.predicting is False:
 
@@ -619,10 +680,12 @@ class env_li():
 
                         '''if step is out of training range'''
 
-                        if (np.mean(self.reward_dic_on_cur_episode) > self.train_to_reward) or (np.mean(self.mo_dic_on_cur_episode) > self.train_to_mo) or (len(self.sum_reward_dic_on_cur_train)>self.train_to_episode) or (self.if_run_baseline is True):
+                        if (np.mean(self.reward_dic_on_cur_episode) > self.train_to_reward) or (np.mean(self.mo_dic_on_cur_episode) > self.train_to_mo) or (len(self.sum_reward_dic_on_cur_train)>self.train_to_episode):
 
                             '''if reward is trained to a acceptable range or trained episode exceed a range'''
                             '''or is running baseline'''
+
+                            print('>>>>>train to an acceptable state')
 
                             '''summary'''
                             summary = tf.Summary()
@@ -659,15 +722,11 @@ class env_li():
                             if self.cur_predicting_step >= (self.step_total-2):
 
                                 '''on line terminating'''
-                                print('on line run meet end, terminate and write done signal')
 
                                 '''record the mo_mean for each subject'''
+                                self.save_mo_result()
 
-                                mo_mean = np.mean(self.mo_on_prediction_dic)
-                                from config import final_log_dir
-                                with open(final_log_dir+"mo_mean.txt","a") as f:
-                                    f.write("%s\tsubject[%s]:\t%s\n"%(self.env_id,self.subject,mo_mean))
-
+                                print('on line run meet end, terminate and write done signal')
                                 self.terminate_this_worker()
 
                         else:
@@ -689,11 +748,11 @@ class env_li():
                         self.reset()
                         done = True
 
-                else:
+                elif self.predicting is True:
 
                     '''if is predicting'''
 
-                    if self.cur_step > self.cur_predicting_step:
+                    if (self.cur_step > self.cur_predicting_step) or (self.if_run_baseline is True):
 
                         '''if cur_step run beyond cur_predicting_step, means already make a prediction on this step'''
 
@@ -723,12 +782,29 @@ class env_li():
                         self.summary_writer.add_summary(summary, self.cur_predicting_step)
                         self.summary_writer.flush()
 
-                        '''tell out side: we are not going to predict'''
-                        self.predicting = False
+                        if self.if_run_baseline is True:
 
-                        '''reset'''
-                        self.reset()
-                        done = True
+                            if self.cur_step > self.cur_predicting_step:
+
+                                '''if we are running baseline and over the cur_predicting_step, terminate here'''
+
+                                '''record the mo_mean for each subject'''
+                                self.save_mo_result()
+
+                                print('on line run meet end, terminate and write done signal')
+                                self.terminate_this_worker()
+
+                        else:
+
+                            '''we are not running baseline'''
+
+                            '''tell out side: we are not going to predict'''
+                            self.predicting = False
+
+                            '''reset'''
+                            self.reset()
+                            done = True
+
 
         if self.mode is 'off_line':
             return self.cur_observation, reward, done, self.cur_cc, self.max_cc, v_lable
@@ -739,10 +815,28 @@ class env_li():
 
         '''send signal to terminating this worker'''
         from config import worker_done_signal_dir, worker_done_signal_file
-        done_sinal_dic = np.load(worker_done_signal_dir+worker_done_signal_file)['done_sinal_dic']
-        done_sinal_dic=np.append(done_sinal_dic, [[self.env_id_num,self.subject]], axis=0)
-        np.savez(worker_done_signal_dir+worker_done_signal_file,
-                 done_sinal_dic=done_sinal_dic)
+
+        while True:
+            try:
+                done_sinal_dic = np.load(worker_done_signal_dir+worker_done_signal_file)['done_sinal_dic']
+                break
+            except Exception, e:
+                print(str(Exception)+": "+str(e))
+                time.sleep(1)
+
+        if self.mode is 'on_line':
+            done_sinal_dic=np.append(done_sinal_dic, [[self.env_id_num,self.subject]], axis=0)
+        elif self.mode is 'data_processor':
+            done_sinal_dic=np.append(done_sinal_dic, [[self.env_id_num]], axis=0)
+
+        while True:
+            try:
+                np.savez(worker_done_signal_dir+worker_done_signal_file,
+                         done_sinal_dic=done_sinal_dic)
+                break
+            except Exception, e:
+                print(str(Exception)+": "+str(e))
+                time.sleep(1)
 
         while True:
             print('this worker is waiting to be killed')
@@ -790,3 +884,19 @@ class env_li():
     def save_heatmap(self,heatmap,path,name):
         heatmap = heatmap * 255.0
         cv2.imwrite(path+'/'+name+'.jpg',heatmap)
+
+    def save_mo_result(self):
+
+        '''
+            Description: save mo result to result dir
+        '''
+
+        mo_mean = np.mean(self.mo_on_prediction_dic)
+        from config import final_log_dir,if_run_baseline
+        if if_run_baseline:
+            from config import baseline_type
+            self.record_mo_file_name = baseline_type
+        else :
+            self.record_mo_file_name = "on_line_model"
+        with open(final_log_dir+self.record_mo_file_name+"_mo_mean.txt","a") as f:
+            f.write("%s\tsubject[%s]:\t%s\n"%(self.env_id,self.subject,mo_mean))
